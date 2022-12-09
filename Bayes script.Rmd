@@ -1,6 +1,6 @@
 ---
-title: "Bayes_testing"
-author: "Emma Beekman"
+title: "Bayes Assignment 1"
+author: "Emma Beekman, "
 date: "`r Sys.Date()`"
 output: pdf_document
 always_allow_html: true
@@ -9,7 +9,8 @@ always_allow_html: true
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, warning = FALSE, MESSAGE = FALSE)
 ```
-Necessary libraries: 
+
+# Import necessary libraries: 
 ```{r}
 library(bnlearn)
 library(dagitty)
@@ -20,13 +21,11 @@ library(dplyr)
 
 # Loading and plotting our DAG
 Load the data, and save it as d.
-
 ```{r}
 d <- read.csv(file = 'online_shoppers_intention.csv')
 ```
 
 Make our causal diagram, and save it as g.
-
 ```{r}
 g <- dagitty('
 dag {
@@ -59,6 +58,7 @@ Plot our DAG
 ```{r}
 plot(g)
 ```
+
 Show the list of conditional independencies that are implied by the diagram. 
 
 ```{r}
@@ -74,7 +74,8 @@ Define binary variables.
 d$Weekend <- as.integer(d$Weekend) #True is 1, False is 2
 d$Revenue <- as.integer(d$Revenue) #True is 1, False is 2
 ```
-Not sure if we should do this, but current work-around to handle VisitorType since it contains 3 variables. VisitorType has 3 categories: new, returning and other. I removed 'other' for now. 
+
+VisitorType has 3 categories: new, returning and other. Remove "other" because it has no clear meaning and is only present in a small part of the dataset. 
 
 ```{r}
 d <- d %>%
@@ -84,19 +85,19 @@ d$VisitorType <- as.integer(as.factor(d$VisitorType))
 ```
 
 
-Compute the correlation matrix. And test the implied conditional independencies of the model structure against the correlation matrix. 
+Compute the correlation matrix. And test the implied conditional independencies of the model structure against the correlation matrix. Write to csv if needed. 
 ```{r}
 corr <- lavCor(d)
 localTests(g, sample.cov=corr, sample.nobs=nrow(d))
 # write.csv(init_test, "Report\\init_test.csv", row.names = TRUE)
 ```
-Plot the test results. Ideally, all effect sizes should fall onto the 0 line. 
 
+Plot the test results. Ideally, all effect sizes should fall onto the 0 line. 
 ```{r}
 plotLocalTestResults(localTests(g, sample.cov=corr, sample.nobs=nrow(d)))
 ```
-Ad_D indep of In_D | VstT is very unlikely so we decide to make these dependent. This results in the following DAG: 
 
+Ad_D indep of In_D | VstT is very unlikely so we decide to make these dependent. This results in the following DAG: 
 ```{r}
 g2 <- dagitty('
 dag {
@@ -123,18 +124,19 @@ Weekend -> Revenue
 Weekend -> VisitorType
 }
              ')
-
 plot(g2)
 ```
+
 ```{r}
 corr <- lavCor(d)
 localTests(g2, sample.cov=corr, sample.nobs=nrow(d))
 ```
+
 ```{r}
 plotLocalTestResults(localTests(g2, sample.cov=corr, sample.nobs=nrow(d)))
 ```
-This improved the results a lot. We can do the same for Ad_D indep of SpcD | VstT: 
 
+This improved the results a lot. We can do the same for Ad_D indep of SpcD | VstT: 
 ```{r}
 g3 <- dagitty('
 dag {
@@ -161,15 +163,16 @@ VisitorType -> Revenue
 Weekend -> Revenue
 Weekend -> VisitorType
 }
-
              ')
 
 plot(g3)
 ```
+
 ```{r}
 corr <- lavCor(d)
 localTests(g3, sample.cov=corr, sample.nobs=nrow(d))
 ```
+
 ```{r}
 plotLocalTestResults(localTests(g3, sample.cov=corr, sample.nobs=nrow(d)))
 ```
@@ -202,21 +205,22 @@ VisitorType -> Revenue
 Weekend -> Revenue
 Weekend -> VisitorType
 }
-
              ')
 
 plot(g4)
 ```
+
 ```{r}
 corr <- lavCor(d)
 localTests(g4, sample.cov=corr, sample.nobs=nrow(d))
 # write.csv(localTest, "Report\\local_test.csv", row.names = TRUE)
 ```
+
 ```{r}
 plotLocalTestResults(localTests(g4, sample.cov=corr, sample.nobs=nrow(d)))
 ```
 
-Not all exactly on the middle line but should be good enough. 
+Not all exactly on the middle line but decided that it is good enough to prevent from overfitting. 
 
 # Fit a model based on the polychoric correlation matrix
 ```{r}
@@ -225,10 +229,12 @@ summary(fit)
 summary
 # write.csv(sum, "Report\\summary_stat.csv", row.names = TRUE)
 ```
+
 Original graph: 
 ```{r}
 plot(g4)
 ```
+
 graph with coefficients: 
 
 ```{r}
@@ -237,11 +243,12 @@ cg <- coordinates(g4)
 coordinates(fg) <- cg
 plot(fg, show.coefficients=TRUE)
 ```
+
 ```{r}
 library(lavaanPlot)
 lavaanPlot(model = fit, coefs=TRUE, digits=3)
 ```
-### Added after feedback: remove paths with high p-values
+# Remove paths with high p-values
 
 ```{r}
 summary(fit)
@@ -275,28 +282,26 @@ VisitorType -> Revenue [pos="0.715,0.573"]
 Weekend -> Revenue [pos="0.998,0.575"]
 Weekend -> VisitorType
 }
-
-
 ')
 
 plot(g5)
-
-
 ```
+
 ```{r}
 corr <- lavCor(d)
 localTests(g5, sample.cov=corr, sample.nobs=nrow(d))
-
 ```
-```{r}
 
+```{r}
 fit <- sem( toString(g5, "lavaan"), sample.cov = corr, sample.nobs = nrow(d))
 summary(fit)
 ```
+
 ```{r}
 plotLocalTestResults(localTests(g5, sample.cov=corr, sample.nobs=nrow(d)))
 ```
-This is good, yes. Now remove weekend to revenue
+
+This looks good. Now remove path from weekend to revenue
 
 ```{r}
 g6 <- dagitty('
@@ -327,14 +332,11 @@ Weekend -> VisitorType
 ')
 
 plot(g6)
-
-
 ```
 
 ```{r}
 corr <- lavCor(d)
 localTests(g6, sample.cov=corr, sample.nobs=nrow(d))
-
 ```
 
 ```{r}
@@ -351,7 +353,7 @@ library(lavaanPlot)
 lavaanPlot(model = fit, coefs=TRUE, digits=3)
 ```
 
-## Tried to make the network more complicated
+## Add more variables to make the network contain more information
 Added PageValues and BounceRates
 
 ```{r}
@@ -388,22 +390,20 @@ VisitorType -> ProductRelated_Duration
 VisitorType -> Revenue [pos="0.715,0.573"]
 Weekend -> VisitorType
 }
-
-
 ')
 
 plot(g7)
-
-
 ```
+
 ```{r}
 corr <- lavCor(d)
 localTests(g7, sample.cov=corr, sample.nobs=nrow(d))
-
 ```
+
 ```{r}
 plotLocalTestResults(localTests(g7, sample.cov=corr, sample.nobs=nrow(d)))
 ```
+
 Added path from page value to revenue
 ```{r}
 g8 <- dagitty('
@@ -444,17 +444,17 @@ Weekend -> VisitorType
 
 plot(g8)
 ```
+
 ```{r}
 corr <- lavCor(d)
 localTests(g8, sample.cov=corr, sample.nobs=nrow(d))
-
 ```
 
 ```{r}
 plotLocalTestResults(localTests(g8, sample.cov=corr, sample.nobs=nrow(d)))
 ```
 
-Added productrelated to bouncerate
+Add path from productrelated to bouncerate.
 
 ```{r}
 g9 <- dagitty('
@@ -492,7 +492,6 @@ VisitorType -> ProductRelated_Duration
 VisitorType -> Revenue [pos="0.669,0.510"]
 Weekend -> VisitorType
 }
-
 ')
 
 plot(g9)
@@ -501,8 +500,8 @@ plot(g9)
 ```{r}
 corr <- lavCor(d)
 localTests(g9, sample.cov=corr, sample.nobs=nrow(d))
-
 ```
+
 ```{r}
 plotLocalTestResults(localTests(g9, sample.cov=corr, sample.nobs=nrow(d)))
 ```
@@ -512,7 +511,8 @@ fit <- sem( toString(g9, "lavaan"), sample.cov = corr, sample.nobs = nrow(d))
 summary(fit)
 ```
 
+# Final DAG with coefficients
 ```{r}
 plot_coef = lavaanPlot(model = fit, coefs=TRUE, digits=3)
-save_png(plot_coef, "Report\\dag_final.png")
+save_png(plot_coef, "dag_final.png")
 ```
